@@ -1,5 +1,5 @@
 Flask
 Gunicorn
 flask_cors
-supabase==0.5.8
+supabase
 dotenv
