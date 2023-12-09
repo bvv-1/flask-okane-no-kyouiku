@@ -1,9 +1,21 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import random
+import os
+from dotenv import load_dotenv
+from supabase import create_client, Client
 
 app = Flask(__name__)
+app.json.ensure_ascii = False  # NOTE: 日本語文字化け対策
 CORS(app)
+
+# .envファイルの内容を読み込む
+load_dotenv()
+SUPABASE_PROJECT_URL: str = os.getenv("SUPABASE_PROJECT_URL")
+SUPABASE_API_KEY: str = os.getenv("SUPABASE_API_KEY")
+supabase: Client = create_client(
+    supabase_url=SUPABASE_PROJECT_URL, supabase_key=SUPABASE_API_KEY
+)
 
 
 @app.route("/")
@@ -27,7 +39,7 @@ def hello_world():
     return jsonify(data), 200
 
 
-@app.route("/api/v1/plans/suggest", methods=['POST'])
+@app.route("/api/v1/plans/suggest", methods=["POST"])
 def suggest_plans():
     """
     API Endpoint: /api/v1/plans/suggest
@@ -68,10 +80,14 @@ def suggest_plans():
         request_data = request.get_json()
 
         # 必要なデータが揃っているか確認
-        if 'goal' in request_data and 'goal_points' in request_data and 'tasks' in request_data:
-            goal = request_data['goal']
-            goal_points = request_data['goal_points']
-            tasks = request_data['tasks']
+        if (
+            "goal" in request_data
+            and "goal_points" in request_data
+            and "tasks" in request_data
+        ):
+            goal = request_data["goal"]
+            goal_points = request_data["goal_points"]
+            tasks = request_data["tasks"]
 
             # プランを生成するロジック (ここでは簡略化)
             plans = generate_daily_plans(goal, goal_points, tasks)
@@ -86,6 +102,7 @@ def suggest_plans():
         # 例外が発生した場合はエラーメッセージを返す
         return jsonify({"error": str(e)}), 500
 
+
 def generate_daily_plans(goal, goal_points, tasks):
     # TODO: プラン生成のロジックを追加する
     day1_plan = {"day": 1, "plans_today": [task for task in tasks]}
@@ -95,7 +112,7 @@ def generate_daily_plans(goal, goal_points, tasks):
     return plans
 
 
-@app.route("/api/v1/plans/accept", methods=['POST'])
+@app.route("/api/v1/plans/accept", methods=["POST"])
 def accept_plan():
     """
     API Endpoint: /api/v1/plans/accept
@@ -133,7 +150,11 @@ def accept_plan():
         request_data = request.get_json()
 
         # 必要なデータが揃っているか確認
-        if 'goal' in request_data and 'goal_points' in request_data and 'tasks' in request_data:
+        if (
+            "goal" in request_data
+            and "goal_points" in request_data
+            and "tasks" in request_data
+        ):
             # プランを受け入れるロジック (ここでは特に処理なし)
             # レスポンスとしてメッセージを返す
             data = {"message": "Plan accepted"}
@@ -147,7 +168,7 @@ def accept_plan():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/v1/plans/check", methods=['GET'])
+@app.route("/api/v1/plans/check", methods=["GET"])
 def check_progress():
     """
     API Endpoint: /api/v1/plans/check
@@ -170,6 +191,7 @@ def check_progress():
 
     # ここでは単純に順調かどうかをランダムに決定
     import random
+
     is_on_track = random.choice([True, False])
 
     if is_on_track:
@@ -178,13 +200,22 @@ def check_progress():
     else:
         # 順調でない場合は新たなプランを提案し直す
         adjusted_plans = suggest_adjusted_plans()
-        return jsonify({"message": "Plans need adjustment", "adjusted_plans": adjusted_plans}), 200
+        return (
+            jsonify(
+                {"message": "Plans need adjustment", "adjusted_plans": adjusted_plans}
+            ),
+            200,
+        )
+
 
 def suggest_adjusted_plans():
     # 新たなプラン生成のロジックを追加する
     # ここでは単にランダムにプランを生成する例
     num_days = random.randint(1, 7)
-    adjusted_plans = [{"day": day, "plans_today": [{"task": "cleaning", "award": 5}]} for day in range(1, num_days + 1)]
+    adjusted_plans = [
+        {"day": day, "plans_today": [{"task": "cleaning", "award": 5}]}
+        for day in range(1, num_days + 1)
+    ]
     return adjusted_plans
 
 
