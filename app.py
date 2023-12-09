@@ -2,14 +2,20 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import random
 import os
+from dotenv import load_dotenv
 from supabase import create_client, Client
 
 app = Flask(__name__)
+app.json.ensure_ascii = False  # NOTE: 日本語文字化け対策
 CORS(app)
 
+# .envファイルの内容を読み込む
+load_dotenv()
 SUPABASE_PROJECT_URL: str = os.getenv("SUPABASE_PROJECT_URL")
 SUPABASE_API_KEY: str = os.getenv("SUPABASE_API_KEY")
-supabase: Client = create_client(SUPABASE_PROJECT_URL, SUPABASE_API_KEY)
+supabase: Client = create_client(
+    supabase_url=SUPABASE_PROJECT_URL, supabase_key=SUPABASE_API_KEY
+)
 
 
 @app.route("/")
