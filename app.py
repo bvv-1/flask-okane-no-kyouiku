@@ -11,8 +11,8 @@ CORS(app)
 
 # .envファイルの内容を読み込む
 load_dotenv()
-SUPABASE_PROJECT_URL: str = os.environ.get("SUPABASE_PROJECT_URL")
-SUPABASE_API_KEY: str = os.environ.get("SUPABASE_PROJECT_URL")
+SUPABASE_PROJECT_URL: str = os.getenv("SUPABASE_PROJECT_URL")
+SUPABASE_API_KEY: str = os.getenv("SUPABASE_API_KEY")
 supabase: Client = create_client(
     supabase_url=SUPABASE_PROJECT_URL, supabase_key=SUPABASE_API_KEY
 )
