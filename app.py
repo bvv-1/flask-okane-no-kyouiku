@@ -471,8 +471,29 @@ def get_points():
             "points": 88
         }
     """
-    data = {"points": 88}
-    return jsonify(data), 200
+    try:
+        # goalsの最新のcreated_atを取得する
+        goals_response = supabase.table("goals").select("*").order("created_at", desc=True).limit(1).execute()
+        goals_response_json = goals_response.json()
+        goals_response_dict = json.loads(goals_response_json)["data"][0]
+
+        print("latest_goal:", goals_response_dict)
+
+        progress_response = supabase.table("progress").select("*").eq("goal_id", goals_response_dict["id"]).execute()
+        progress_response_json = progress_response.json()
+        progress_response_dict = json.loads(progress_response_json)["data"]
+
+        print("latest_progress:", progress_response_dict)
+
+        total_points = 0
+        for progress in progress_response_dict:
+            total_points += progress["total_points"]
+
+        return jsonify({"points": total_points}), 200
+    
+    except Exception as e:
+        # 例外が発生した場合はエラーメッセージを返す
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
