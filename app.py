@@ -209,8 +209,9 @@ def suggest_plans_v2():
         tasks_ids_response_json = tasks_ids_response.json()
         tasks_ids_response_dict = json.loads(tasks_ids_response_json)["data"][0]
 
-        plans = generate_daily_plans(goal=goal_response_dict, tasks=tasks_response_dict)
-        plans_response = supabase.table("plans").insert(plans).execute()
+        plans = generate_daily_plans_tmp(goal=goal_response_dict, tasks=tasks_response_dict)
+        plans_processed = [{"day": plan["day"], "task_id": plan["plans_today"]["id"]} for plan in plans]
+        plans_response = supabase.table("plans").insert(plans_processed).execute()
         plans_response_json = plans_response.json()
         plans_response_dict = json.loads(plans_response_json)["data"]
 
@@ -238,11 +239,10 @@ def generate_daily_plans(goal, tasks):
 
 def generate_daily_plans_tmp(goal, tasks):
     # FIXME: delete this
-    day1_plan = {"day": 1, "plans_today": [task["task"] for task in tasks]}
-    day2_plan = {"day": 2, "plans_today": []}
-    plans = [day1_plan, day2_plan]
-
-    return plans
+    return [
+        {"day": 1, "plans_today": random.choice(tasks)},
+        {"day": 2, "plans_today": random.choice(tasks)},
+    ]
 
 
 @app.route("/api/v1/plans/accept", methods=["POST"])
