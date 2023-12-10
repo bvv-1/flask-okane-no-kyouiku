@@ -2,3 +2,4 @@ Flask
 Gunicorn
 flask_cors
 supabase
+python-dotenv
