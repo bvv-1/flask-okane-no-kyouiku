@@ -309,6 +309,90 @@ def suggest_adjusted_plans():
     return adjusted_plans
 
 
+@app.route("/api/v1/plans/today", methods=["POST"])
+def get_today_plans():
+    """
+    API Endpoint: /api/v1/plans/today
+    HTTP Method: POST
+
+    Get plans for the specified day.
+
+    Request:
+    - Method: POST
+    - Headers:
+        Content-Type: application/json
+    - Body (JSON):
+        {
+            "day": 1
+        }
+
+    Response:
+    - Success (HTTP 200 OK):
+        {
+            "day": 1,
+            "plans_today": [
+                {"task": "cleaning", "point": 5}
+            ]
+        }
+    - Bad Request (HTTP 400 Bad Request):
+        {
+            "error": "Invalid data format"
+        }
+    """
+
+    try:
+        # POSTリクエストのボディからJSONデータを取得
+        request_data = request.get_json()
+
+        # 必要なデータが揃っているか確認
+        if "day" in request_data:
+            day = request_data["day"]
+
+            # TODO: データベースから指定された日のプランを取得するロジックを追加
+            # goalsの最新のcreated_atを取得する
+            goals_response = supabase.table("goals").select("*").order("created_at", desc=True).limit(1).execute()
+            goals_response_json = goals_response.json()
+            goals_response_dict = json.loads(goals_response_json)["data"][0]
+
+            print("latest_goal:", goals_response_dict)
+
+            plans_ids_id_response = supabase.table("goals_relations").select("plans_ids_id").eq("goal_id", goals_response_dict["id"]).order("created_at", desc=True).limit(1).execute()
+            plans_ids_id_response_json = plans_ids_id_response.json()
+            plans_ids_id_response_dict = json.loads(plans_ids_id_response_json)["data"][0]
+
+            print("plans_ids_id:", plans_ids_id_response_dict)
+
+            plans_ids_response = supabase.table("plans_ids").select("plans_ids").eq("id", plans_ids_id_response_dict["plans_ids_id"]).execute()
+            plans_ids_response_json = plans_ids_response.json()
+            plans_ids_response_dict = json.loads(plans_ids_response_json)["data"][0]
+
+            print("plans_ids:", plans_ids_response_dict)
+
+            plans_today_response = supabase.table("plans").select("*").in_("id", plans_ids_response_dict["plans_ids"]).eq("day", day).execute()
+            plans_today_response_json = plans_today_response.json()
+            plans_today_response_dict = json.loads(plans_today_response_json)["data"]
+
+            print("plans_today:", plans_today_response_dict)
+
+            plans_today = []
+            for plan in plans_today_response_dict:
+                task_response = supabase.table("tasks").select("*").eq("id", plan["task_id"]).execute()
+                task_response_json = task_response.json()
+                task_response_dict = json.loads(task_response_json)["data"][0]
+                plans_today.append({"task": task_response_dict["task"], "point": task_response_dict["point"]})
+            
+            print("plans_today:", plans_today)
+
+            return jsonify({"day": day, "plans_today": plans_today}), 200
+        else:
+            # 必要なデータが見つからない場合はエラーメッセージを返す
+            return jsonify({"error": "Invalid data format"}), 400
+
+    except Exception as e:
+        # 例外が発生した場合はエラーメッセージを返す
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/v1/submit", methods=["POST"])
 def submit():
     """
