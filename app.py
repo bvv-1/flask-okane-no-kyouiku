@@ -40,103 +40,6 @@ def hello_world():
     return jsonify(data), 200
 
 
-@app.route("/api/v1/plans/suggest", methods=["POST"])
-def suggest_plans():
-    """
-    API Endpoint: /api/v1/plans/suggest
-    HTTP Method: POST
-
-    Generate suggested daily plans based on the user's goal and tasks.
-
-    Request:
-    - Method: POST
-    - Headers:
-        Content-Type: application/json
-    - Body (JSON):
-        {
-            "goal": "computer",
-            "goal_points": 100,
-            "tasks": [
-                {"task": "cleaning", "award": 5},
-                {"task": "wash dishes", "award": 2}
-            ]
-        }
-
-    Response:
-    - Success (HTTP 200 OK):
-        {
-            "plans": [
-                {"day": 1, "plans_today": [{"task": "cleaning", "award": 5}, ...]},
-                {"day": 2, "plans_today": []},
-            ]
-        }
-    - Bad Request (HTTP 400 Bad Request):
-        {
-            "error": "Invalid data format"
-        }
-    """
-
-    try:
-        # POSTリクエストのボディからJSONデータを取得
-        request_data = request.get_json()
-
-        # 必要なデータが揃っているか確認
-        if not (
-            "goal" in request_data
-            and "goal_points" in request_data
-            and "tasks" in request_data
-        ):
-            # 必要なデータが見つからない場合はエラーメッセージを返す
-            return jsonify({"error": "Invalid data format"}), 400
-        
-        goal = request_data["goal"]
-        goal_points = request_data["goal_points"]
-        tasks = request_data["tasks"]
-
-
-        # supabaseでゴール、タスク、プランを保存する
-        # NOTE: supabase-py に transaction がないので危険
-        goal_response = supabase.table("goals").insert({"item_name": goal, "item_points": goal_points}).execute()
-        goal_response_json = goal_response.json()
-        goal_response_dict = json.loads(goal_response_json)["data"][0]
-
-        print("created:", goal_response_dict)
-        
-        tasks_response = supabase.table("tasks").insert([{"task": task["task"], "award": task["award"], "goal_id": goal_response_dict["id"]} for task in tasks]).execute()
-        tasks_response_json = tasks_response.json()
-        tasks_response_dict = json.loads(tasks_response_json)["data"]
-
-        print("created:", tasks_response_dict)
-
-        tasks_ids_response = supabase.table("tasks_ids").insert([{"task_ids": [task["id"] for task in tasks_response_dict]}]).execute()
-        tasks_ids_response_json = tasks_ids_response.json()
-        tasks_ids_response_dict = json.loads(tasks_ids_response_json)["data"][0]
-
-        plans = generate_daily_plans(goal=goal_response_dict, tasks=tasks_response_dict)
-        plans_response = supabase.table("plans").insert(plans).execute()
-        plans_response_json = plans_response.json()
-        plans_response_dict = json.loads(plans_response_json)["data"]
-
-        print("created:", plans_response_dict)
-
-        plans_ids_response = supabase.table("plans_ids").insert([{"plan_ids": [plan["id"] for plan in plans_response_dict]}]).execute()
-        plans_ids_response_json = plans_ids_response.json()
-        plans_ids_response_dict = json.loads(plans_ids_response_json)["data"][0]
-
-        # relationsを整備
-        supabase.table("goals_relations").insert({"plan_ids_id": plans_ids_response_dict["id"], "tasks_ids_id": tasks_ids_response_dict["id"]}).execute()
-
-        # FIXME: delete this
-        plans = generate_daily_plans_tmp(goal=goal_response_dict, tasks=tasks_response_dict)
-
-        # 生成したプランを含むレスポンスを返す
-        return jsonify({"plans": plans}), 200
-
-    except Exception as e:
-        # 例外が発生した場合はエラーメッセージを返す
-        return jsonify({"error": str(e)}), 500
-
-
 @app.route("/api/v2/plans/suggest", methods=["POST"])
 def suggest_plans_v2():
     """
@@ -154,8 +57,8 @@ def suggest_plans_v2():
             "goal": "computer",
             "goal_points": 100,
             "tasks": [
-                {"task": "cleaning", "award": 5},
-                {"task": "wash dishes", "award": 2}
+                {"task": "cleaning", "point": 5},
+                {"task": "wash dishes", "point": 2}
             ]
         }
 
@@ -163,7 +66,7 @@ def suggest_plans_v2():
     - Success (HTTP 200 OK):
         {
             "plans": [
-                {"day": 1, "plans_today": [{"task": "cleaning", "award": 5}, ...]},
+                {"day": 1, "plans_today": [{"task": "cleaning", "point": 5}, ...]},
                 {"day": 2, "plans_today": []},
             ]
         }
@@ -199,7 +102,7 @@ def suggest_plans_v2():
 
         print("created:", goal_response_dict)
         
-        tasks_response = supabase.table("tasks").insert([{"task": task["task"], "award": task["award"], "goal_id": goal_response_dict["id"]} for task in tasks]).execute()
+        tasks_response = supabase.table("tasks").insert([{"task": task["task"], "point": task["point"], "goal_id": goal_response_dict["id"]} for task in tasks]).execute()
         tasks_response_json = tasks_response.json()
         tasks_response_dict = json.loads(tasks_response_json)["data"]
 
@@ -365,7 +268,7 @@ def check_progress():
     - Need Adjustment (HTTP 200 OK):
         {
             "message": "Plans need adjustment",
-            "adjusted_plans": [{"day": 1, "plans_today": [{"task": "cleaning", "award": 5}, ...]}, ...]
+            "adjusted_plans": [{"day": 1, "plans_today": [{"task": "cleaning", "point": 5}, ...]}, ...]
         }
     """
 
@@ -391,7 +294,7 @@ def suggest_adjusted_plans():
     # ここでは単にランダムにプランを生成する例
     num_days = random.randint(1, 7)
     adjusted_plans = [
-        {"day": day, "plans_today": [{"task": "cleaning", "award": 5}]}
+        {"day": day, "plans_today": [{"task": "cleaning", "point": 5}]}
         for day in range(1, num_days + 1)
     ]
     return adjusted_plans
