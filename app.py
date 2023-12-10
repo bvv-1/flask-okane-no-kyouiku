@@ -113,7 +113,11 @@ def suggest_plans_v2():
         tasks_ids_response_dict = json.loads(tasks_ids_response_json)["data"][0]
 
         plans = generate_daily_plans_tmp(goal=goal_response_dict, tasks=tasks_response_dict)
-        plans_processed = [{"day": plan["day"], "task_id": plan["plans_today"]["id"]} for plan in plans]
+        # NOTE: flatmap的なこと
+        plans_processed = []
+        for plan in plans:
+            for task in plan["plans_today"]:
+                plans_processed.append({"day": plan["day"], "task_id": task["id"]})
         plans_response = supabase.table("plans").insert(plans_processed).execute()
         plans_response_json = plans_response.json()
         plans_response_dict = json.loads(plans_response_json)["data"]
@@ -160,8 +164,8 @@ def generate_daily_plans(goal, tasks, days=7):
 def generate_daily_plans_tmp(goal, tasks):
     # FIXME: delete this
     return [
-        {"day": 1, "plans_today": random.choice(tasks)},
-        {"day": 2, "plans_today": random.choice(tasks)},
+        {"day": 1, "plans_today": [random.choice(tasks)]},
+        {"day": 2, "plans_today": [random.choice(tasks)]},
     ]
 
 
