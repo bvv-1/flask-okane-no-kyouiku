@@ -229,14 +229,6 @@ def suggest_plans_v2():
         return jsonify({"error": str(e)}), 500
 
 
-# def generate_daily_plans(goal, tasks):
-#     # TODO: プラン生成のロジックを追加する
-#     task_ids = [int(task["id"]) for task in tasks]
-#     return [
-#         {"day": 1, "task_id": random.choice(task_ids)},
-#         {"day": 2, "task_id": random.choice(task_ids)},
-#     ]
-
 def generate_daily_plans(goal, tasks, days=7):
     goal_id = int(goal["id"])
     task_ids = [int(task["id"]) for task in tasks]
