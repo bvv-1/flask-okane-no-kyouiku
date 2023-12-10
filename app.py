@@ -168,6 +168,30 @@ def accept_plan():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/v1/goals")
+def check_goal():
+    """
+    API Endpoint: /api/v1/goals/check_goal
+    HTTP Method: GET
+
+    Check the current goal.
+
+    Request:
+    - Method: GET
+
+    Response:
+    - Success (HTTP 200 OK):
+        {
+            "goal": "computer",
+            "goal_points": 100
+        }
+    """
+
+    # ここでは固定のゴールと目標ポイントを返す例
+    goal_data = {"goal": "computer", "goal_points": 100}
+    return jsonify(goal_data), 200
+
+
 @app.route("/api/v1/plans/check", methods=["GET"])
 def check_progress():
     """
