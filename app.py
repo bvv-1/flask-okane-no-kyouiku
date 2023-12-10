@@ -229,13 +229,38 @@ def suggest_plans_v2():
         return jsonify({"error": str(e)}), 500
 
 
-def generate_daily_plans(goal, tasks):
-    # TODO: プラン生成のロジックを追加する
+# def generate_daily_plans(goal, tasks):
+#     # TODO: プラン生成のロジックを追加する
+#     task_ids = [int(task["id"]) for task in tasks]
+#     return [
+#         {"day": 1, "task_id": random.choice(task_ids)},
+#         {"day": 2, "task_id": random.choice(task_ids)},
+#     ]
+
+def generate_daily_plans(goal, tasks, days=7):
+    goal_id = int(goal["id"])
     task_ids = [int(task["id"]) for task in tasks]
-    return [
-        {"day": 1, "task_id": random.choice(task_ids)},
-        {"day": 2, "task_id": random.choice(task_ids)},
-    ]
+
+    # 毎日スケジュール
+    daily_plans = []
+
+    # 毎日、少なくとも一つのTODO
+    for day in range(1, days + 1):
+        task_id = random.choice(task_ids)
+        daily_plans.append({"goal_id": goal_id, "day": day, "task_id": task_id})
+
+    # 残りのTODOがある場合、ランダムに各日に分配
+    remaining_tasks = len(task_ids) - days
+    for _ in range(remaining_tasks):
+        day = random.randint(1, days)
+        task_id = random.choice(task_ids)
+        daily_plans.append({"goal_id": goal_id, "day": day, "task_id": task_id})
+
+    # 各TODOにポイント数
+    for plan in daily_plans:
+        plan['points'] = random.randint(1, 5)
+
+    return daily_plans
 
 def generate_daily_plans_tmp(goal, tasks):
     # FIXME: delete this
