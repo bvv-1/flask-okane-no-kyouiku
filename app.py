@@ -126,11 +126,9 @@ def accept_plan():
         Content-Type: application/json
     - Body (JSON):
         {
-            "goal": "computer",
-            "goal_points": 100,
-            "tasks": [
-                {"task": "cleaning", "award": 5},
-                {"task": "wash dishes", "award": 2}
+            "plans": [
+                {"day": 1, "plans_today": [{"task": "cleaning", "award": 5}, ...]},
+                {"day": 2, "plans_today": [{"task": "wash dishes", "award": 2}, ...]},
             ]
         }
 
@@ -150,12 +148,11 @@ def accept_plan():
         request_data = request.get_json()
 
         # 必要なデータが揃っているか確認
-        if (
-            "goal" in request_data
-            and "goal_points" in request_data
-            and "tasks" in request_data
-        ):
-            # プランを受け入れるロジック (ここでは特に処理なし)
+        if "plans" in request_data and isinstance(request_data["plans"], list):
+            # プランを受け入れるロジック
+
+            # TODO: DBにプランを保存して、ゴールのstatusを更新する
+
             # レスポンスとしてメッセージを返す
             data = {"message": "Plan accepted"}
             return jsonify(data), 200
