@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import random
 import os
+import json
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
@@ -80,32 +81,60 @@ def suggest_plans():
         request_data = request.get_json()
 
         # 必要なデータが揃っているか確認
-        if (
+        if not (
             "goal" in request_data
             and "goal_points" in request_data
             and "tasks" in request_data
         ):
-            goal = request_data["goal"]
-            goal_points = request_data["goal_points"]
-            tasks = request_data["tasks"]
-
-            # プランを生成するロジック (ここでは簡略化)
-            plans = generate_daily_plans(goal, goal_points, tasks)
-
-            # 生成したプランを含むレスポンスを返す
-            return jsonify({"plans": plans}), 200
-        else:
             # 必要なデータが見つからない場合はエラーメッセージを返す
             return jsonify({"error": "Invalid data format"}), 400
+        
+        goal = request_data["goal"]
+        goal_points = request_data["goal_points"]
+        tasks = request_data["tasks"]
+
+
+        # supabaseでゴール、タスク、プランを保存する
+        # NOTE: supabase-py に transaction がないので危険
+        goal_response = supabase.table("goals").insert({"item_name": goal, "item_points": goal_points}).execute()
+        goal_response_json = goal_response.json()
+        goal_response_dict = json.loads(goal_response_json)["data"][0]
+
+        print("created:", goal_response_dict)
+        
+        task_response = supabase.table("tasks").insert([{"task": task["task"], "award": task["award"], "goal_id": goal_response_dict["id"]} for task in tasks]).execute()
+        task_response_json = task_response.json()
+        task_response_dict = json.loads(task_response_json)["data"]
+
+        print("created:", task_response_dict)
+
+        plans = generate_daily_plans(goal=goal_response_dict, tasks=task_response_dict)
+        print("plans:", plans)
+        supabase.table("plans").insert(plans).execute()
+
+        # FIXME: delete this
+        plans = generate_daily_plans_tmp(goal=goal_response_dict, tasks=task_response_dict)
+
+        # 生成したプランを含むレスポンスを返す
+        return jsonify({"plans": plans}), 200
 
     except Exception as e:
         # 例外が発生した場合はエラーメッセージを返す
         return jsonify({"error": str(e)}), 500
 
 
-def generate_daily_plans(goal, goal_points, tasks):
+def generate_daily_plans(goal, tasks):
     # TODO: プラン生成のロジックを追加する
-    day1_plan = {"day": 1, "plans_today": [task for task in tasks]}
+    goal_id = int(goal["id"])
+    task_ids = [int(task["id"]) for task in tasks]
+    return [
+        {"goal_id": goal_id, "day": 1, "task_id": random.choice(task_ids)},
+        {"goal_id": goal_id, "day": 2, "task_id": random.choice(task_ids)},
+    ]
+
+def generate_daily_plans_tmp(goal, tasks):
+    # FIXME: delete this
+    day1_plan = {"day": 1, "plans_today": [task["task"] for task in tasks]}
     day2_plan = {"day": 2, "plans_today": []}
     plans = [day1_plan, day2_plan]
 
@@ -210,9 +239,7 @@ def check_progress():
         }
     """
 
-    # ここでは単純に順調かどうかをランダムに決定
-    import random
-
+    # TODO: 単純に順調かどうかを真面目に決定
     is_on_track = random.choice([True, False])
 
     if is_on_track:
@@ -323,4 +350,4 @@ def get_points():
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
