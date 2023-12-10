@@ -208,7 +208,7 @@ def accept_plan():
             tasks_ids_id = request_data["tasks_ids_id"]
 
             # goalsの最新のcreated_atを取得する
-            goals_response = supabase.table("goals").select("*").order("created_at", desc=False).limit(1).execute()
+            goals_response = supabase.table("goals").select("*").order("created_at", desc=True).limit(1).execute()
             goals_response_json = goals_response.json()
             goals_response_dict = json.loads(goals_response_json)["data"][0]
 
@@ -251,8 +251,13 @@ def check_goal():
     """
 
     # ここでは固定のゴールと目標ポイントを返す例
-    goal_data = {"goal": "computer", "goal_points": 100}
-    return jsonify(goal_data), 200
+    goal_response = supabase.table("goals").select("*").eq("status", 1).order("created_at", desc=True).limit(1).execute()
+    goal_response_json = goal_response.json()
+    goal_response_dict = json.loads(goal_response_json)["data"][0]
+
+    print("latest_goal:", goal_response_dict)
+
+    return jsonify({"goal": goal_response_dict["item_name"], "goal_points": goal_response_dict["item_points"]}), 200
 
 
 @app.route("/api/v1/plans/check", methods=["GET"])
