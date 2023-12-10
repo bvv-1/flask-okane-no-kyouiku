@@ -407,11 +407,8 @@ def submit():
         Content-Type: application/json
     - Body (JSON):
         {
-            "daily": [
-                {"task": "cleaning", "status": true},
-                {"task": "exercise", "status": false},
-                ...
-            ]
+            day: 1,
+            total_points: 10,
         }
 
     Response:
@@ -432,17 +429,20 @@ def submit():
         # POSTリクエストのボディからJSONデータを取得
         json_data = request.get_json()
 
-        # "daily" キーが存在し、その値がリストであることを確認
-        if "daily" in json_data and isinstance(json_data["daily"], list):
-            daily_data = json_data["daily"]
+        if "day" in json_data and "total_points" in json_data:
+            day = json_data["day"]
+            total_points = json_data["total_points"]
 
-            # daily_dataを処理する (ここでは単に表示する例)
-            for item in daily_data:
-                task = item.get("task")
-                status = item.get("status")
-                print(f"Task: {task}, Status: {status}")
+            # goalsの最新のcreated_atを取得する
+            goals_response = supabase.table("goals").select("*").order("created_at", desc=True).limit(1).execute()
+            goals_response_json = goals_response.json()
+            goals_response_dict = json.loads(goals_response_json)["data"][0]
 
-            # 応答として成功メッセージを返す
+            print("latest_goal:", goals_response_dict)
+
+            supabase.table("progress").insert({"day": day, "total_points": total_points, "goal_id": goals_response_dict["id"]}).execute()
+
+            # レスポンスとしてメッセージを返す
             return jsonify({"message": "Data received successfully"}), 200
 
         else:
